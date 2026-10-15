@@ -1,0 +1,33 @@
+{
+  "hello": {
+    "type": "hello",
+    "serial": "90000055",
+    "hostname": "Wattpilot_90000055",
+    "friendly_name": "Flex",
+    "manufacturer": "fronius",
+    "devicetype": "wattpilot_flex",
+    "version": "42.2",
+    "protocol": 2,
+    "secured": true,
+    "hash": "bcrypt"
+  },
+  "status": {
+    "sse": "90000055",
+    "typ": "wattpilot_flex",
+    "var": 11,
+    "fna": "Flex",
+    "fwv": "42.2",
+    "car": 3,
+    "alw": false,
+    "nrg": [229, 231, 230, 0.9, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    "wh": 0,
+    "eto": 321000,
+    "amp": 12,
+    "ama": 16,
+    "frc": 0,
+    "lmo": 4,
+    "err": 0,
+    "tma": [18.25, 17.5],
+    "modelStatus": 16
+  }
+}

@@ -1,0 +1,32 @@
+{
+  "hello": {
+    "type": "hello",
+    "serial": "90000033",
+    "hostname": "Wattpilot_90000033",
+    "friendly_name": "Carport",
+    "manufacturer": "fronius",
+    "devicetype": "wattpilot",
+    "version": "40.7",
+    "protocol": 2,
+    "secured": false
+  },
+  "status": {
+    "sse": "90000033",
+    "typ": "wattpilot",
+    "var": 22,
+    "fna": "Carport",
+    "fwv": "40.7",
+    "car": 4,
+    "alw": false,
+    "nrg": [230.4, 0, 0, 0.8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    "wh": 18240.2,
+    "eto": 4567890,
+    "amp": 10,
+    "ama": 20,
+    "frc": 0,
+    "lmo": 5,
+    "err": 0,
+    "tma": [24, null],
+    "modelStatus": 10
+  }
+}
