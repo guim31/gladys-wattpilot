@@ -1,177 +1,421 @@
 {
   "manifest_version": 1,
   "type": "device",
-  "name": "Demo Devices Template",
+  "name": "Fronius Wattpilot",
   "description": {
-    "en": "Starter template showing sensors, a switch, a dimmable light and a smart plug.",
-    "fr": "Template de démarrage : capteurs, interrupteur, lampe variable et prise connectée."
+    "en": "Fronius Wattpilot EV chargers on the local network: charge state, power, energy, current and modes.",
+    "fr": "Bornes Fronius Wattpilot en local : état de charge, puissance, énergie, courant et modes de charge.",
+    "de": "Fronius Wattpilot Wallboxen im lokalen Netz: Ladezustand, Leistung, Energie, Strom und Modi.",
+    "es": "Cargadores Fronius Wattpilot en red local: estado de carga, potencia, energía, corriente y modos."
   },
   "version": "1.0.0",
-  "docker_image": "ghcr.io/gladysassistant/integration-template-js:1.0.0",
-  "gladys_version": ">=5.1.0",
-  "cover_image": "https://raw.githubusercontent.com/GladysAssistant/integration-template-js/master/cover.png",
-  "categories": ["lighting", "security", "environment"],
-  "transports": ["local", "cloud"],
+  "docker_image": "ghcr.io/guim31/gladys-wattpilot:1.0.0",
+  "gladys_version": ">=5.2.0",
+  "cover_image": "https://raw.githubusercontent.com/guim31/gladys-wattpilot/main/cover.png",
+  "categories": ["energy"],
+  "transports": ["local"],
   "config_schema": [
     {
       "key": "intro",
       "type": "section",
-      "label": { "en": "Getting started", "fr": "Pour commencer" },
-      "description": {
-        "en": "The demo weather station reads real data from the free Open-Meteo API: pick the coordinates to observe. No account, no API key.",
-        "fr": "La station météo de démonstration lit de vraies données via l'API gratuite Open-Meteo : choisissez les coordonnées à observer. Pas de compte, pas de clé d'API."
+      "label": {
+        "en": "Before you start",
+        "fr": "Avant de commencer",
+        "de": "Bevor du anfängst",
+        "es": "Antes de empezar"
       },
-      "links": [
+      "description": {
+        "en": "Gladys talks to the Wattpilot directly on your local network, like the Fronius Solar.wattpilot app does at home. Give the charger a fixed IP address in your router, then enter it below with the password of the charger: the one you chose in the app when you installed it.",
+        "fr": "Gladys dialogue directement avec le Wattpilot sur votre réseau local, comme l'appli Fronius Solar.wattpilot à la maison. Donnez une adresse IP fixe à la borne dans votre box, puis saisissez-la ci-dessous avec le mot de passe de la borne : celui choisi dans l'appli à l'installation.",
+        "de": "Gladys spricht direkt im lokalen Netzwerk mit dem Wattpilot, wie die Fronius Solar.wattpilot App zu Hause. Gib der Ladestation in deinem Router eine feste IP-Adresse und trage sie unten ein, mit dem Passwort der Ladestation: dem, das du bei der Installation in der App gewählt hast.",
+        "es": "Gladys se comunica directamente con el Wattpilot en su red local, como la app Fronius Solar.wattpilot en casa. Asigne una dirección IP fija al cargador en su router e introdúzcala abajo con la contraseña del cargador: la que eligió en la app al instalarlo."
+      }
+    },
+    {
+      "key": "host",
+      "type": "string",
+      "label": {
+        "en": "Charger IP address",
+        "fr": "Adresse IP de la borne",
+        "de": "IP-Adresse der Ladestation",
+        "es": "Dirección IP del cargador"
+      },
+      "placeholder": {
+        "en": "e.g. 192.0.2.10",
+        "fr": "ex. 192.0.2.10",
+        "de": "z. B. 192.0.2.10",
+        "es": "p. ej. 192.0.2.10"
+      },
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "password",
+      "type": "secret",
+      "label": {
+        "en": "Charger password",
+        "fr": "Mot de passe de la borne",
+        "de": "Passwort der Ladestation",
+        "es": "Contraseña del cargador"
+      },
+      "description": {
+        "en": "The password set in the Solar.wattpilot app. It stays in Gladys and never leaves your network.",
+        "fr": "Le mot de passe défini dans l'appli Solar.wattpilot. Il reste dans Gladys et ne quitte pas votre réseau.",
+        "de": "Das in der Solar.wattpilot App festgelegte Passwort. Es bleibt in Gladys und verlässt dein Netzwerk nicht.",
+        "es": "La contraseña definida en la app Solar.wattpilot. Se queda en Gladys y no sale de su red."
+      },
+      "required": false
+    },
+    {
+      "key": "refresh_interval",
+      "type": "select",
+      "label": {
+        "en": "Refresh interval",
+        "fr": "Intervalle de rafraîchissement",
+        "de": "Aktualisierungsintervall",
+        "es": "Intervalo de actualización"
+      },
+      "description": {
+        "en": "How often the measures go to Gladys. A change of state, mode or current is sent at once.",
+        "fr": "Fréquence d'envoi des mesures à Gladys. Un changement d'état, de mode ou de courant part tout de suite.",
+        "de": "Wie oft die Messwerte an Gladys gehen. Eine Änderung von Zustand, Modus oder Strom wird sofort gesendet.",
+        "es": "Frecuencia de envío de las medidas a Gladys. Un cambio de estado, modo o corriente se envía en el acto."
+      },
+      "required": false,
+      "default": "15",
+      "options": [
         {
-          "url": "https://open-meteo.com/en/docs",
-          "label": { "en": "Open-Meteo documentation", "fr": "Documentation Open-Meteo" }
+          "value": "10",
+          "label": {
+            "en": "10 seconds",
+            "fr": "10 secondes",
+            "de": "10 Sekunden",
+            "es": "10 segundos"
+          }
+        },
+        {
+          "value": "15",
+          "label": {
+            "en": "15 seconds",
+            "fr": "15 secondes",
+            "de": "15 Sekunden",
+            "es": "15 segundos"
+          }
+        },
+        {
+          "value": "30",
+          "label": {
+            "en": "30 seconds",
+            "fr": "30 secondes",
+            "de": "30 Sekunden",
+            "es": "30 segundos"
+          }
+        },
+        {
+          "value": "60",
+          "label": {
+            "en": "1 minute",
+            "fr": "1 minute",
+            "de": "1 Minute",
+            "es": "1 minuto"
+          }
         }
       ]
     },
     {
-      "key": "latitude",
-      "type": "number",
-      "label": { "en": "Latitude", "fr": "Latitude" },
-      "description": {
-        "en": "Latitude used for the demo weather sensor.",
-        "fr": "Latitude utilisée par le capteur météo de démonstration."
-      },
-      "placeholder": { "en": "e.g. 48.8566", "fr": "ex. 48.8566" },
-      "required": true,
-      "default": 48.8566,
-      "min": -90,
-      "max": 90
-    },
-    {
-      "key": "longitude",
-      "type": "number",
-      "label": { "en": "Longitude", "fr": "Longitude" },
-      "description": {
-        "en": "Longitude used for the demo weather sensor.",
-        "fr": "Longitude utilisée par le capteur météo de démonstration."
-      },
-      "placeholder": { "en": "e.g. 2.3522", "fr": "ex. 2.3522" },
-      "required": true,
-      "default": 2.3522,
-      "min": -180,
-      "max": 180
-    },
-    {
-      "key": "unit",
+      "key": "language",
       "type": "select",
-      "label": { "en": "Temperature unit", "fr": "Unité de température" },
-      "required": false,
-      "default": "celsius",
-      "options": [
-        { "value": "celsius", "label": { "en": "Celsius", "fr": "Celsius" } },
-        { "value": "fahrenheit", "label": { "en": "Fahrenheit", "fr": "Fahrenheit" } }
-      ]
-    },
-    {
-      "key": "poll_frequency",
-      "type": "number",
-      "label": { "en": "Refresh interval (s)", "fr": "Intervalle de rafraîchissement (s)" },
+      "label": {
+        "en": "Language of the feature names",
+        "fr": "Langue des noms de fonctionnalités",
+        "de": "Sprache der Funktionsnamen",
+        "es": "Idioma de los nombres de las funciones"
+      },
       "description": {
-        "en": "How often sensors are polled, in seconds (one minute minimum).",
-        "fr": "Fréquence d'interrogation des capteurs, en secondes (une minute minimum)."
+        "en": "Names given to the features of new devices, and language of the error texts.",
+        "fr": "Noms donnés aux fonctionnalités des nouveaux appareils, et langue des textes d'erreur.",
+        "de": "Namen der Funktionen neuer Geräte und Sprache der Fehlertexte.",
+        "es": "Nombres de las funciones de los dispositivos nuevos e idioma de los textos de error."
       },
       "required": false,
-      "default": 300,
-      "min": 60,
-      "max": 3600
+      "default": "fr",
+      "options": [
+        {
+          "value": "en",
+          "label": {
+            "en": "English",
+            "fr": "Anglais",
+            "de": "Englisch",
+            "es": "Inglés"
+          }
+        },
+        {
+          "value": "fr",
+          "label": {
+            "en": "French",
+            "fr": "Français",
+            "de": "Französisch",
+            "es": "Francés"
+          }
+        },
+        {
+          "value": "de",
+          "label": {
+            "en": "German",
+            "fr": "Allemand",
+            "de": "Deutsch",
+            "es": "Alemán"
+          }
+        },
+        {
+          "value": "es",
+          "label": {
+            "en": "Spanish",
+            "fr": "Espagnol",
+            "de": "Spanisch",
+            "es": "Español"
+          }
+        }
+      ]
     }
   ],
   "actions": [
     {
-      "key": "test_weather",
-      "label": { "en": "Test the weather provider", "fr": "Tester le fournisseur météo" },
+      "key": "test_connection",
+      "label": {
+        "en": "Test the connection",
+        "fr": "Tester la connexion",
+        "de": "Verbindung testen",
+        "es": "Probar la conexión"
+      },
       "timeout_seconds": 30
-    },
-    {
-      "key": "identify",
-      "label": { "en": "Identify a device", "fr": "Identifier un appareil" },
-      "fields": [
-        {
-          "key": "device",
-          "type": "select",
-          "source": "devices",
-          "label": { "en": "Device", "fr": "Appareil" },
-          "required": true
-        }
-      ]
     }
   ],
   "scene_triggers": [
     {
-      "key": "motion_detected",
-      "label": { "en": "Motion detected", "fr": "Mouvement détecté" },
+      "key": "charge_finished",
+      "label": {
+        "en": "Wattpilot charge finished",
+        "fr": "Charge Wattpilot terminée",
+        "de": "Wattpilot Laden beendet",
+        "es": "Carga Wattpilot terminada"
+      },
       "description": {
-        "en": "A demo motion sensor saw a person or an animal move.",
-        "fr": "Un détecteur de démonstration a vu bouger une personne ou un animal."
+        "en": "The car stopped drawing after a charge: it is full, or reached the limit set in the car or the app.",
+        "fr": "La voiture a cessé de consommer après une charge : elle est pleine, ou a atteint la limite réglée dans la voiture ou l'appli.",
+        "de": "Das Auto zieht nach dem Laden keinen Strom mehr: Es ist voll oder hat das im Auto oder in der App eingestellte Limit erreicht.",
+        "es": "El coche ha dejado de consumir tras una carga: está lleno o ha alcanzado el límite fijado en el coche o en la app."
       },
       "fields": [
         {
           "key": "device",
           "type": "select",
           "source": "devices",
-          "label": { "en": "Sensor", "fr": "Détecteur" }
-        },
-        {
-          "key": "target",
-          "type": "multi_select",
-          "label": { "en": "What moved", "fr": "Ce qui a bougé" },
-          "options": [
-            { "value": "person", "label": { "en": "Person", "fr": "Personne" } },
-            { "value": "animal", "label": { "en": "Animal", "fr": "Animal" } }
-          ]
+          "label": {
+            "en": "Charger",
+            "fr": "Borne",
+            "de": "Ladestation",
+            "es": "Cargador"
+          }
         }
       ],
       "variables": [
         {
-          "key": "target",
+          "key": "energy_kwh",
+          "type": "number",
+          "label": {
+            "en": "Energy charged (kWh)",
+            "fr": "Énergie chargée (kWh)",
+            "de": "Geladene Energie (kWh)",
+            "es": "Energía cargada (kWh)"
+          }
+        },
+        {
+          "key": "charger",
           "type": "string",
-          "label": { "en": "What moved", "fr": "Ce qui a bougé" }
+          "label": {
+            "en": "Charger name",
+            "fr": "Nom de la borne",
+            "de": "Name der Ladestation",
+            "es": "Nombre del cargador"
+          }
         }
       ]
     }
   ],
   "scene_actions": [
     {
-      "key": "identify_device",
-      "label": { "en": "Identify a device", "fr": "Identifier un appareil" },
-      "description": {
-        "en": "Make a device signal itself (the demo light blinks).",
-        "fr": "Fait se signaler un appareil (la lampe de démonstration clignote)."
+      "key": "set_charging_mode",
+      "label": {
+        "en": "Set the Wattpilot charging mode",
+        "fr": "Régler le mode de charge Wattpilot",
+        "de": "Wattpilot Lademodus einstellen",
+        "es": "Ajustar el modo de carga Wattpilot"
       },
-      "timeout_seconds": 15,
+      "description": {
+        "en": "Switch between Default, Eco and Next Trip, as in the Solar.wattpilot app.",
+        "fr": "Passe en Standard, Éco ou Next Trip, comme dans l'appli Solar.wattpilot.",
+        "de": "Wechselt zwischen Standard, Eco und Next Trip, wie in der Solar.wattpilot App.",
+        "es": "Cambia entre Estándar, Eco y Next Trip, como en la app Solar.wattpilot."
+      },
+      "timeout_seconds": 20,
       "fields": [
         {
-          "key": "device",
+          "key": "charger",
           "type": "select",
           "source": "devices",
-          "label": { "en": "Device", "fr": "Appareil" },
+          "label": {
+            "en": "Charger",
+            "fr": "Borne",
+            "de": "Ladestation",
+            "es": "Cargador"
+          },
           "required": true
-        }
-      ],
-      "outputs": [
+        },
         {
-          "key": "signalled",
-          "type": "boolean",
-          "label": { "en": "Device signalled", "fr": "Appareil signalé" }
+          "key": "mode",
+          "type": "select",
+          "label": {
+            "en": "Mode",
+            "fr": "Mode",
+            "de": "Modus",
+            "es": "Modo"
+          },
+          "required": true,
+          "options": [
+            {
+              "value": "default",
+              "label": {
+                "en": "Default",
+                "fr": "Standard",
+                "de": "Standard",
+                "es": "Estándar"
+              }
+            },
+            {
+              "value": "eco",
+              "label": {
+                "en": "Eco",
+                "fr": "Éco",
+                "de": "Eco",
+                "es": "Eco"
+              }
+            },
+            {
+              "value": "next_trip",
+              "label": {
+                "en": "Next Trip",
+                "fr": "Next Trip",
+                "de": "Next Trip",
+                "es": "Next Trip"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "set_charge_override",
+      "label": {
+        "en": "Force or stop the Wattpilot charge",
+        "fr": "Forcer ou arrêter la charge Wattpilot",
+        "de": "Wattpilot Laden erzwingen oder stoppen",
+        "es": "Forzar o detener la carga Wattpilot"
+      },
+      "description": {
+        "en": "Force the charge on or off whatever the mode, or give the decision back to the charging mode.",
+        "fr": "Force la charge ou l'arrêt quel que soit le mode, ou rend la main au mode de charge.",
+        "de": "Erzwingt Laden oder Stopp unabhängig vom Modus, oder gibt die Entscheidung an den Lademodus zurück.",
+        "es": "Fuerza la carga o la parada sea cual sea el modo, o devuelve la decisión al modo de carga."
+      },
+      "timeout_seconds": 20,
+      "fields": [
+        {
+          "key": "charger",
+          "type": "select",
+          "source": "devices",
+          "label": {
+            "en": "Charger",
+            "fr": "Borne",
+            "de": "Ladestation",
+            "es": "Cargador"
+          },
+          "required": true
+        },
+        {
+          "key": "override",
+          "type": "select",
+          "label": {
+            "en": "Override",
+            "fr": "Forçage",
+            "de": "Erzwingen",
+            "es": "Forzado"
+          },
+          "required": true,
+          "options": [
+            {
+              "value": "on",
+              "label": {
+                "en": "Forced charge",
+                "fr": "Charge forcée",
+                "de": "Erzwungenes Laden",
+                "es": "Carga forzada"
+              }
+            },
+            {
+              "value": "off",
+              "label": {
+                "en": "Forced stop",
+                "fr": "Arrêt forcé",
+                "de": "Erzwungener Stopp",
+                "es": "Parada forzada"
+              }
+            },
+            {
+              "value": "neutral",
+              "label": {
+                "en": "Follow the mode",
+                "fr": "Selon le mode",
+                "de": "Nach Modus",
+                "es": "Según el modo"
+              }
+            }
+          ]
         }
       ]
     }
   ],
   "widgets": [
     {
-      "key": "demo_status",
-      "label": { "en": "Demo status", "fr": "État de la démo" },
-      "description": {
-        "en": "Live temperature and plug power, plug connection and observed location.",
-        "fr": "Température et puissance en direct, connexion de la prise, position observée."
+      "key": "charger",
+      "label": {
+        "en": "Fronius Wattpilot",
+        "fr": "Fronius Wattpilot",
+        "de": "Fronius Wattpilot",
+        "es": "Fronius Wattpilot"
       },
-      "icon": "activity",
-      "action_timeout_seconds": 15
+      "description": {
+        "en": "Charge state, power, session energy and current, with charge, stop and settings buttons.",
+        "fr": "État, puissance, énergie de la session et courant, avec boutons charger, arrêter et réglages.",
+        "de": "Ladezustand, Leistung, Energie und Strom, mit Tasten zum Laden, Stoppen und für Einstellungen.",
+        "es": "Estado, potencia, energía de la sesión y corriente, con botones cargar, detener y ajustes."
+      },
+      "icon": "zap",
+      "action_timeout_seconds": 20,
+      "settings": [
+        {
+          "key": "charger",
+          "type": "select",
+          "source": "devices",
+          "label": {
+            "en": "Charger",
+            "fr": "Borne",
+            "de": "Ladestation",
+            "es": "Cargador"
+          },
+          "required": true
+        }
+      ]
     }
   ]
 }

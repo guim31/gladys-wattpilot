@@ -5,19 +5,21 @@ contributors.
 
 ## What this is
 
-A Gladys Assistant **external integration**: a Node.js service (Node 22+, ESM,
-no build step) that runs in its own sandboxed Docker container and talks to
-Gladys through
-[`@gladysassistant/integration-sdk`](https://github.com/GladysAssistant/integration-sdk-js),
-its only runtime dependency. It started from the official JavaScript template.
+A Gladys Assistant **external integration** for Fronius Wattpilot EV chargers:
+a Node.js service (Node 22+, ESM, no build step) that runs in its own
+sandboxed Docker container and talks to Gladys through
+[`@gladysassistant/integration-sdk`](https://github.com/GladysAssistant/integration-sdk-js).
+Runtime dependencies: the SDK, `ws` (already pulled by the SDK, declared for
+the charger's WebSocket) and `bcryptjs` (loaded only for a Wattpilot Flex). It
+started from the official JavaScript template.
 
 ## Commands
 
 ```bash
 npm install
 npm test                                  # node --test, the built-in runner
-node --test test/devices.test.js          # one file
-node --test --test-name-pattern "plug"    # tests whose name matches
+node --test test/hub.test.js              # one file
+node --test --test-name-pattern "widget"  # tests whose name matches
 npm run lint                              # ESLint
 npm run format:check                      # Prettier, as the CI runs it
 npm run format                            # Prettier, fix in place
@@ -31,16 +33,23 @@ pushing.
 ## Architecture
 
 ```
-index.js                          SDK wiring only: handlers registered before connect()
-src/devices/index.js              registry of the device blueprints + dispatch helpers
-src/devices/<type>.js             one device type per file (buildDevice, onPoll, onSetValue...)
+index.js                          SDK wiring only: src/app.js registers every handler before connect()
+src/app.js                        the SDK handlers, bound to the hub (the tests use the same wiring)
+src/hub.js                        the charger as Gladys sees it: link events → states, timer, commands, trigger
+src/devices.js                    the Gladys device, its feature keys (forever) and its states
+src/wattpilot/auth.js             password hashes (PBKDF2, bcrypt for the Flex), auth answer, HMAC
+src/wattpilot/session.js          one authenticated WebSocket session: hello → auth → fullStatus → deltaStatus
+src/wattpilot/link.js             the session kept open: reconnection, backoff, watchdog
+src/wattpilot/model.js            pure functions: Wattpilot status → Gladys values
+src/widgets.js                    dashboard widget `charger` (manifest `widgets`)
 src/scenes.js                     scene action handlers (manifest `scene_actions`)
-src/widgets.js                    dashboard widget handlers (manifest `widgets`)
+src/i18n.js                       every text, in en, fr, de, es
+src/issues.js                     repeated failures logged once
 src/config.js                     DEFAULT_CONFIG (mirrors the manifest defaults) + normalization
-src/weather.js                    example driver (Open-Meteo)
+scripts/probe.mjs                 read-only probe of a real charger (password from WATTPILOT_PASSWORD)
 gladys-assistant-integration.json manifest: name, config_schema, actions, image...
-docs/en.md, docs/fr.md            user documentation, re-hosted by Gladys (mandatory)
-test/                             node --test, against the SDK's fake Gladys (integration-sdk/testing)
+docs/{en,fr,de,es}.md             user documentation, re-hosted by Gladys (en and fr mandatory)
+test/                             node --test, against the SDK's fake Gladys and a fake Wattpilot (test/helpers)
 .github/scripts/release.mjs       release helpers (manifest bump, changelog), tested in test/
 ```
 
@@ -70,8 +79,10 @@ test/                             node --test, against the SDK's fake Gladys (in
   `type: "provider"`: 5.1.0). `test/manifest.test.js` ties the manifest to the
   code (defaults, action, scene and widget handlers): change both sides
   together.
-- **User-facing text** is bilingual (English and French): action messages,
-  manifest texts, and `docs/en.md` / `docs/fr.md`, kept in sync.
+- **User-facing text** exists in four languages (English, French, German with
+  "du", Spanish with "usted"): action messages, manifest texts, widget texts,
+  feature names, and `docs/en.md`, `docs/fr.md`, `docs/de.md`, `docs/es.md`,
+  kept in sync (`test/i18n.test.js`).
 - **Style.** Prettier formats, ESLint catches mistakes. Comments explain why,
   in English. Tests never touch the network.
 
@@ -233,3 +244,63 @@ long, et sur un « Sie »/« Ihr… » de politesse en allemand. Le store exige 
 - Docs `en`, `fr`, `de`, `es` avec les mêmes sections.
 - Chauffe, ouverture, sécurité : ne rien rendre pilotable « comme un thermostat » ou par un assistant
   vocal quand une erreur serait dangereuse (leçon d'OctoPrint).
+
+## Fronius Wattpilot (cette intégration)
+
+**Protocole** (aucune doc officielle : `joscha82/wattpilot`, MIT, `API.md` et
+`src/wattpilot/ressources/wattpilot.yaml` ; recoupé avec `mk-maddin/wattpilot-HA`,
+Apache-2.0, et `mabunixda/wattpilot` en Go, Apache-2.0) :
+
+- `ws://<ip>/ws`, port 80, sans TLS. La borne envoie `hello` (`serial`, `devicetype`,
+  `version`, `secured`, parfois `hash`) puis `authRequired` (`token1`, `token2`).
+- Mot de passe haché avec le numéro de série en sel : **PBKDF2-HMAC-SHA512**, 100 000 tours,
+  256 octets, base64, 32 premiers caractères (Home, Go). Le brief disait « PBKDF2/SHA-256 » :
+  c'est SHA-512 dans les trois implémentations. **Flex** (`hash: "bcrypt"` ou `devicetype`
+  `wattpilot_flex`) : bcrypt coût 8 du SHA-256 hexadécimal du mot de passe, sel tiré des chiffres
+  du numéro de série (`bcryptjs.encodeBase64`), préfixe du sel retiré. Valeurs de référence dans
+  `test/auth.test.js`, calculées avec hashlib et le code Python de mk-maddin + `bcrypt`.
+- Réponse `auth` : `token3` aléatoire (32 hex),
+  `hash = sha256(token3 + token2 + sha256(token1 + hashé))`. Puis `authSuccess` ou `authError`.
+- État complet en plusieurs `fullStatus` (`partial: true` puis `false` ; certains micrologiciels
+  oublient le `false` : le premier `deltaStatus` clôt alors l'état complet), puis `deltaStatus`
+  à chaque changement, plusieurs fois par seconde en charge.
+- Commande : `{ type: "setValue", requestId, key, value }`, enveloppée si `secured` dans
+  `{ type: "securedMsg", data: <JSON>, requestId: "<id>sm", hmac: HMAC-SHA256(hashé, data) }`.
+  Réponse `{ type: "response", requestId, success, status | message }` ; l'id revient avec ou
+  sans le suffixe `sm` selon les sources : les deux sont acceptés.
+- Clés lues (`STATUS_KEYS`, `src/wattpilot/session.js`) : celles de go-e (`car`, `nrg`, `amp`,
+  `ama`, `frc`, `err`, `eto`, `wh`, `tma`, `var`) plus `lmo` (3 Default, 4 Eco, 5 Next Trip).
+  **Le reste est jeté à la réception** : l'état complet contient `cak` (clé de l'API cloud go-e)
+  et le Wi-Fi (`ccw`), qui n'ont rien à faire en mémoire ni dans les journaux.
+
+**Pièges et choix** :
+
+- **Pas de sondage** : la borne pousse. Le « minuteur interne » exigé par la série publie l'état
+  en mémoire à l'intervalle choisi ; les clés sur lesquelles l'utilisateur agit (`IMMEDIATE_KEYS`
+  de `src/hub.js`) partent tout de suite. Sans ce tampon, `nrg` dépasserait les 300 états/min.
+- **Une seule connexion** : `test_connection` lit l'état du lien, il n'ouvre jamais une seconde
+  session (le nombre de connexions simultanées acceptées par la borne n'est pas documenté).
+- **Mot de passe refusé** : nouvel essai toutes les 10 min seulement (comportement de la borne
+  face à des échecs répétés inconnu) ; `test_connection` relance tout de suite.
+- **Chien de garde** : 60 s sans message → ping WebSocket ; 30 s de plus sans pong → reconnexion.
+  Hypothèse sans matériel : la borne (ESP-IDF) répond aux pings. `scripts/probe.mjs` mesure
+  `answers_ping` et `longest_silence_ms` pour le vérifier.
+- `car` → énums OCPP de Gladys : même tableau que go-e (en tête de `src/wattpilot/model.js`).
+  Énergie de la session en `electrical-vehicle-charge/last-charge-energy-added`, **pas** en
+  `energy-sensor/energy` (comptée deux fois par le suivi d'énergie 5.2) ; seul `eto` est un
+  `energy-sensor/index`.
+- Courant : bornes d'affichage par variante (`var` 11 → 16 A, sinon 32 A), et commande refusée
+  au-delà de `ama` (limite réglée dans l'appli) avant tout envoi.
+- Déclencheur « voiture branchée » **non créé** : la fonctionnalité `plugged` suffit (règle « pas
+  de déclencheur qui doublonne un état »). « Charge terminée » apporte l'énergie de la session et
+  ne se déclenche que sur la transition 2 → 4 vue en direct.
+- `text/select` (mode, forçage) : l'éditeur de scènes ne sait pas les régler, d'où les actions
+  `set_charging_mode` et `set_charge_override`.
+- Le verrou du câble (`ust`), les badges, la commutation de phases (`psm`) et les réglages
+  solaires ne sont pas exposés (règle de sécurité de la série, et « ne pas dupliquer Solar.web »).
+- Une borne éteinte au démarrage est retrouvée par les `params` (`SERIAL`, `HOST`) de l'appareil
+  déjà créé, pour publier « hors ligne ».
+- Clés figées : fonctionnalités (`FEATURE` dans `src/devices.js`), déclencheur `charge_finished`,
+  actions de scène `set_charging_mode` et `set_charge_override`, widget `charger` et ses actions
+  `force_on`, `force_off`, `neutral`, `settings`, action `test_connection`, config `host`,
+  `password`, `refresh_interval`, `language`.

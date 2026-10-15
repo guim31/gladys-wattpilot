@@ -1,0 +1,32 @@
+{
+  "hello": {
+    "type": "hello",
+    "serial": "90000044",
+    "hostname": "Wattpilot_90000044",
+    "friendly_name": "Wattpilot_90000044",
+    "manufacturer": "fronius",
+    "devicetype": "wattpilot",
+    "version": "38.5",
+    "protocol": 2,
+    "secured": true
+  },
+  "status": {
+    "sse": "90000044",
+    "typ": "wattpilot",
+    "var": 11,
+    "fna": "Driveway",
+    "fwv": "38.5",
+    "car": 5,
+    "alw": false,
+    "nrg": [233, 232, 234, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    "wh": 0,
+    "eto": 98765,
+    "amp": 16,
+    "ama": 16,
+    "frc": 1,
+    "lmo": 3,
+    "err": 13,
+    "tma": [78.5, 71.25],
+    "modelStatus": 1
+  }
+}

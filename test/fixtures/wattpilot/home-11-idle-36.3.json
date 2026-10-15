@@ -1,0 +1,43 @@
+{
+  "hello": {
+    "type": "hello",
+    "serial": "90000011",
+    "hostname": "Wattpilot_90000011",
+    "friendly_name": "Wattpilot_90000011",
+    "manufacturer": "fronius",
+    "devicetype": "wattpilot",
+    "version": "36.3",
+    "protocol": 2,
+    "secured": true
+  },
+  "status": {
+    "sse": "90000011",
+    "typ": "wattpilot",
+    "var": 11,
+    "fna": "",
+    "fwv": "36.3",
+    "car": 1,
+    "alw": true,
+    "acu": 6,
+    "nrg": [235, 234, 234, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    "wh": 2133.804,
+    "eto": 1076098,
+    "amp": 6,
+    "ama": 16,
+    "frc": 0,
+    "lmo": 3,
+    "err": 0,
+    "tma": [11, 16.75],
+    "modelStatus": 15,
+    "fhz": 49.937,
+    "rbt": 1560937433,
+    "cae": false,
+    "cak": "fake-cloud-api-key-not-a-real-one",
+    "ccw": {
+      "ssid": "fake-ssid",
+      "ip": "192.0.2.21",
+      "netmask": "255.255.255.0",
+      "gw": "192.0.2.1"
+    }
+  }
+}
