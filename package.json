@@ -1,6 +1,6 @@
 {
   "name": "gladys-wattpilot",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "private": true,
   "description": "Gladys Assistant integration for Fronius Wattpilot EV chargers, over their local WebSocket API.",
   "type": "module",

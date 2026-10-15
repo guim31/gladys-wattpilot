@@ -10,6 +10,8 @@ the notes of the version's GitHub Release.
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-10-15
+
 ### Added
 
 - Fronius Wattpilot chargers (Home and Go, 11 and 22 kW) over their local
@@ -33,4 +35,5 @@ the notes of the version's GitHub Release.
 - Wattpilot Flex support (bcrypt password check), untested on a real Flex.
 - Documentation in English, French, German and Spanish.
 
-[Unreleased]: https://github.com/guim31/gladys-wattpilot/commits/main
+[Unreleased]: https://github.com/guim31/gladys-wattpilot/compare/v1.0.1...HEAD
+[1.0.1]: https://github.com/guim31/gladys-wattpilot/releases/tag/v1.0.1
